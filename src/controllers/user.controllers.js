@@ -5,21 +5,24 @@ import {uploadOnCloudinary} from  "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
 
-const AccessAndRefreshTokens= async(userId)=>{
+const generateAccessAndRefreshToken= async(userId)=>{
     try {
-        const user=await User.findOne(userId)
+        const user=await User.findById(userId)
+        
         const accessToken=user.generateAccessToken()
         const refreshToken=user.generateRefreshToken()
 
+        
         user.refreshToken=refreshToken
         await user.save({validateBeforeSave : false})
-
+        
         return {accessToken,refreshToken}
 
     } catch (error) {
         throw new ApiError(500,"Something went wrong while generating tokens ")
     }
 }
+
 const registerUser = asyncHandler(async (req,res) => {
 
    //register
@@ -106,8 +109,8 @@ const loginUser=asyncHandler(async(req,res) =>{
   //send cookies 
   
   const{username,email,password}=req.body
-  if(!username || !email){
-    throw new ApiError (400,"Username or email is required")
+  if(!username && !email){
+    throw new ApiError (400,"Username and email is required")
   }
 
   const user =await User.findOne({
@@ -123,9 +126,11 @@ const loginUser=asyncHandler(async(req,res) =>{
   if(!isPasswordValid){
     throw new ApiError(401,"Invalid credentials")
   }
+
+
     const {accessToken,refreshToken}=await generateAccessAndRefreshToken(user._id)
     
-    const loggedInUser=await User.findById(_id).select("-password -refreshToken")
+    const loggedInUser=await User.findById(user._id).select("-password -refreshToken")
 
     const options={
         httpOnly:true,
